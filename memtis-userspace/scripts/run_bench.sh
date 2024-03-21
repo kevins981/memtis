@@ -138,7 +138,7 @@ function func_main() {
     func_cache_flush
     sleep 2
 
-    ${DIR}/scripts/memory_stat.sh ${LOG_DIR} &
+    #${DIR}/scripts/memory_stat.sh ${LOG_DIR} &
     if [[ "x${BENCH_NAME}" =~ "xsilo" ]]; then
 	${TIME} -f "execution time %e (s)" \
 	    ${PINNING} ${DIR}/bin/launch_bench_nopid ${BENCH_RUN} 2>&1 \
@@ -153,7 +153,7 @@ function func_main() {
 	    | tee ${LOG_DIR}/output.log
     fi
 
-    sudo killall -9 memory_stat.sh
+    #sudo killall -9 memory_stat.sh
     cat /proc/vmstat | grep -e thp -e htmm -e pgmig > ${LOG_DIR}/after_vmstat.log
     sleep 2
 
