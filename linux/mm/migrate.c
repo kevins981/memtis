@@ -1277,7 +1277,10 @@ int next_demotion_node(int node)
 	 * node_demotion[] reads need to be consistent.
 	 */
 	rcu_read_lock();
-	target = READ_ONCE(node_demotion[node]);
+	//target = READ_ONCE(node_demotion[node]);
+  // Kevin: hardcode to 1 for CXL emulation on two socket machine.
+  // Node 0 emulates fast tier DRAM, node 1 emulates CXL memory.
+  target = 1;
 	rcu_read_unlock();
 
 	return target;
@@ -1289,7 +1292,9 @@ int next_promotion_node(int node)
     int target;
 
     rcu_read_lock();
-    target = READ_ONCE(node_promotion[node]);
+    //target = READ_ONCE(node_promotion[node]);
+    // Kevin: hardcode to 0 for CXL emulation
+    target = 0;
     rcu_read_unlock();
 
     return target;
