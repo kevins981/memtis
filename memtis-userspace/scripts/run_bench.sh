@@ -10,7 +10,7 @@ MEM_NODES=($(ls /sys/devices/system/node | grep node | awk -F 'node' '{print $NF
 
 CGROUP_NAME="htmm"
 ###### update DIR!
-DIR=/home/taehyung/workspace/memtis/memtis-userspace
+DIR=/ssd1/songxin8/thesis/memtis/memtis/memtis-userspace
 
 CONFIG_PERF=off
 CONFIG_NS=off
@@ -53,21 +53,25 @@ function func_memtis_setting() {
     fi
 
     if [[ "x${CONFIG_CXL_MODE}" == "xon" ]]; then
-	${DIR}/scripts/set_uncore_freq.sh on
+	#${DIR}/scripts/set_uncore_freq.sh on
 	echo "enabled" | tee /sys/kernel/mm/htmm/htmm_cxl_mode
     else
-	${DIR}/scripts/set_uncore_freq.sh off
+	#${DIR}/scripts/set_uncore_freq.sh off
 	echo "disabled" | tee /sys/kernel/mm/htmm/htmm_cxl_mode
     fi
 
-    echo "always" | tee /sys/kernel/mm/transparent_hugepage/enabled
-    echo "always" | tee /sys/kernel/mm/transparent_hugepage/defrag
+    # Turn off huge page by default
+    echo "madvise" | tee /sys/kernel/mm/transparent_hugepage/enabled
+    echo "madvise" | tee /sys/kernel/mm/transparent_hugepage/defrag
 }
 
 function func_prepare() {
     echo "Preparing benchmark start..."
 
 	sudo sysctl kernel.perf_event_max_sample_rate=100000
+
+  # turn off swap
+  swapoff /swap.img
 
 	# disable automatic numa balancing
 	sudo echo 0 > /proc/sys/kernel/numa_balancing
