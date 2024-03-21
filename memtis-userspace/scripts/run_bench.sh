@@ -20,6 +20,9 @@ STATIC_DRAM=""
 DATE=""
 VER=""
 
+PERF_STAT_INTERVAL=10000
+PERF_EXE="/ssd1/songxin8/thesis/autonuma/linux-v6.2-autonuma/tools/perf/perf"
+
 function func_cache_flush() {
     echo 3 > /proc/sys/vm/drop_caches
     free
@@ -108,7 +111,7 @@ function func_main() {
     fi
     
     # use 20 threads 
-    PINNING="taskset -c 0-19"
+    #PINNING="taskset -c 0-19"
 
     echo "-----------------------"
     echo "NVM RATIO: ${NVM_RATIO}"
@@ -116,8 +119,8 @@ function func_main() {
     echo "-----------------------"
 
     # make directory for results
-    mkdir -p ${DIR}/results/${BENCH_NAME}/${VER}/${NVM_RATIO}
-    LOG_DIR=${DIR}/results/${BENCH_NAME}/${VER}/${NVM_RATIO}
+    mkdir -p ${DIR}/results/${BENCH_NAME}/${VER}/${NVM_RATIO}-${DATE}
+    LOG_DIR=${DIR}/results/${BENCH_NAME}/${VER}/${NVM_RATIO}-${DATE}
 
     # set memcg for htmm
     sudo ${DIR}/scripts/set_htmm_memcg.sh htmm remove
@@ -139,6 +142,13 @@ function func_main() {
     sleep 2
 
     #${DIR}/scripts/memory_stat.sh ${LOG_DIR} &
+
+    # monitor fast tier memory hit ratio
+    ${PERF_EXE} stat -e mem_load_l3_miss_retired.local_dram -e mem_load_l3_miss_retired.remote_dram -I ${PERF_STAT_INTERVAL} -x , --output ${LOG_DIR}/perf_stat_memhit &
+    echo "${PERF_EXE} stat -e mem_load_l3_miss_retired.local_dram -e mem_load_l3_miss_retired.remote_dram -I ${PERF_STAT_INTERVAL} -x , --output ${LOG_DIR}/perf_stat_memhit &"
+    PERF_STAT_PID=$!
+    echo "perf stat pid is $PERF_STAT_PID"
+
     if [[ "x${BENCH_NAME}" =~ "xsilo" ]]; then
 	${TIME} -f "execution time %e (s)" \
 	    ${PINNING} ${DIR}/bin/launch_bench_nopid ${BENCH_RUN} 2>&1 \
@@ -153,6 +163,8 @@ function func_main() {
 	    | tee ${LOG_DIR}/output.log
     fi
 
+    echo "kill perf stat pid is $PERF_STAT_PID"
+    kill $PERF_STAT_PID
     #sudo killall -9 memory_stat.sh
     cat /proc/vmstat | grep -e thp -e htmm -e pgmig > ${LOG_DIR}/after_vmstat.log
     sleep 2
