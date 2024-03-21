@@ -17,6 +17,9 @@ echo "+memory" | sudo tee ${CGROUP_DIR}/cgroup.subtree_control
 echo "+cpuset" | sudo tee ${CGROUP_DIR}/cgroup.subtree_control
 
 echo ${BASH_PID} | sudo tee ${CGROUP_DIR}/${CGROUP_NAME}/cgroup.procs
+# Kevin added. Only allowed to use CPUs on node 0 for CXL emulation
+echo "0-15,32-47" | sudo tee ${CGROUP_DIR}/${CGROUP_NAME}/cpuset.cpus
+
 if [ "x$3" == "xenable" ]; then
     echo "enabled" | sudo tee ${CGROUP_DIR}/${CGROUP_NAME}/memory.htmm_enabled
     exit
