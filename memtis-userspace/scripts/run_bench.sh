@@ -12,6 +12,9 @@ CGROUP_NAME="htmm"
 ###### update DIR!
 DIR=/ssd1/songxin8/thesis/memtis/memtis_ecosys/memtis-userspace
 
+## Script to periodically clean page cache. Used for cachelib twitter trace workloads
+CLEAR_PAGE_CACHE_SCRIPT=/ssd1/songxin8/thesis/bigmembench/bigmembench_common_momentum/clear_page_cache.sh
+
 CONFIG_PERF=off
 CONFIG_NS=off
 CONFIG_NW=off
@@ -45,8 +48,10 @@ function func_memtis_setting() {
 
     if [[ "x${CONFIG_NS}" == "xoff" ]]; then
 	echo 1 | tee /sys/kernel/mm/htmm/htmm_thres_split
+  echo "Enable split"
     else
 	echo 0 | tee /sys/kernel/mm/htmm/htmm_thres_split
+  echo "Disable split"
     fi
 
     if [[ "x${CONFIG_NW}" == "xoff" ]]; then
@@ -63,9 +68,11 @@ function func_memtis_setting() {
 	echo "disabled" | tee /sys/kernel/mm/htmm/htmm_cxl_mode
     fi
 
-    # Turn off huge page by default
-    echo "madvise" | tee /sys/kernel/mm/transparent_hugepage/enabled
-    echo "madvise" | tee /sys/kernel/mm/transparent_hugepage/defrag
+    echo "always" | tee /sys/kernel/mm/transparent_hugepage/enabled
+    echo "always" | tee /sys/kernel/mm/transparent_hugepage/defrag
+    ## Turn off huge page by default
+    #echo "never" | tee /sys/kernel/mm/transparent_hugepage/enabled
+    #echo "never" | tee /sys/kernel/mm/transparent_hugepage/defrag
 }
 
 function func_prepare() {
@@ -149,34 +156,37 @@ function func_main() {
     PERF_STAT_PID=$!
     echo "perf stat pid is $PERF_STAT_PID"
 
-    if [[ "x${BENCH_NAME}" =~ "xsilo" ]]; then
-	${TIME} -f "execution time %e (s)" \
-	    ${PINNING} ${DIR}/bin/launch_bench_nopid ${BENCH_RUN} 2>&1 \
-	    | tee ${LOG_DIR}/output.log
-    elif [[ "x${BENCH_NAME}" =~ "xspeccpu" ]]; then
-	${TIME} -f "execution time %e (s)" \
-	    ${PINNING} ${DIR}/bin/launch_bench_nopid ${BENCH_RUN} < ${BENCH_ARG} 2>&1 \
-	    | tee ${LOG_DIR}/output.log
+    if [[ "x${BENCH_NAME}" == "xcachelib-twitter"* ]]; then
+      echo "Running CacheLib Twitter traces. Periodically cleaning page cache."
+      $CLEAR_PAGE_CACHE_SCRIPT &
+      CLEAR_PAGE_CACHE_PID=$!
+      echo "Clear page cache pid is $CLEAR_PAGE_CACHE_PID"
+	    ${TIME} -v \
+	        ${DIR}/bin/launch_bench_nopid ${BENCH_RUN} 2>&1 \
+	        | tee ${LOG_DIR}/output.log
     else
-	${TIME} -f "execution time %e (s)" \
-	    ${DIR}/bin/launch_bench_nopid ${BENCH_RUN} 2>&1 \
-	    | tee ${LOG_DIR}/output.log
+	    ${TIME} -v \
+	        ${DIR}/bin/launch_bench_nopid ${BENCH_RUN} 2>&1 \
+	        | tee ${LOG_DIR}/output.log
     fi
+
 
     echo "kill perf stat pid is $PERF_STAT_PID"
     kill $PERF_STAT_PID
+
+    kill $CLEAR_PAGE_CACHE_PID 
     #sudo killall -9 memory_stat.sh
     cat /proc/vmstat | grep -e thp -e htmm -e pgmig > ${LOG_DIR}/after_vmstat.log
     sleep 2
 
-    if [[ "x${BENCH_NAME}" == "xbtree" ]]; then
-	cat ${LOG_DIR}/output.log | grep Throughput \
-	    | awk ' NR%20==0 { print sum ; sum = 0 ; next} { sum+=$3 }' \
-	    > ${LOG_DIR}/throughput.out
-    elif [[ "x${BENCH_NAME}" =~ "xsilo" ]]; then
-	cat ${LOG_DIR}/output.log | grep -e '0 throughput' -e '5 throughput' \
-	    | awk ' { print $4 }' > ${LOG_DIR}/throughput.out
-    fi
+ #   if [[ "x${BENCH_NAME}" == "xbtree" ]]; then
+ # cat ${LOG_DIR}/output.log | grep Throughput \
+ #     | awk ' NR%20==0 { print sum ; sum = 0 ; next} { sum+=$3 }' \
+ #     > ${LOG_DIR}/throughput.out
+ #   elif [[ "x${BENCH_NAME}" =~ "xsilo" ]]; then
+ # cat ${LOG_DIR}/output.log | grep -e '0 throughput' -e '5 throughput' \
+ #     | awk ' { print $4 }' > ${LOG_DIR}/throughput.out
+ #   fi
 
     sudo dmesg -c > ${LOG_DIR}/dmesg.txt
     # disable htmm
