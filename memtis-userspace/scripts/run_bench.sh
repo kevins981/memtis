@@ -16,6 +16,7 @@ DIR=/ssd1/songxin8/thesis/memtis/memtis_ecosys/memtis-userspace
 CLEAR_PAGE_CACHE_SCRIPT=/ssd1/songxin8/thesis/bigmembench/bigmembench_common_momentum/clear_page_cache.sh
 
 CONFIG_PERF=off
+USE_HUGE_PAGE=off
 CONFIG_NS=off
 CONFIG_NW=off
 CONFIG_CXL_MODE=off
@@ -68,11 +69,19 @@ function func_memtis_setting() {
 	echo "disabled" | tee /sys/kernel/mm/htmm/htmm_cxl_mode
     fi
 
-    echo "always" | tee /sys/kernel/mm/transparent_hugepage/enabled
-    echo "always" | tee /sys/kernel/mm/transparent_hugepage/defrag
-    ## Turn off huge page by default
-    #echo "never" | tee /sys/kernel/mm/transparent_hugepage/enabled
-    #echo "never" | tee /sys/kernel/mm/transparent_hugepage/defrag
+    if [[ "x${USE_HUGE_PAGE}" == "xon" ]]; then
+      echo "always" | tee /sys/kernel/mm/transparent_hugepage/enabled
+      echo "always" | tee /sys/kernel/mm/transparent_hugepage/defrag
+      echo "Huge page ON"
+    else
+    # Turn off huge page by default
+      echo "never" | tee /sys/kernel/mm/transparent_hugepage/enabled
+      echo "never" | tee /sys/kernel/mm/transparent_hugepage/defrag
+      echo "Huge page OFF"
+    fi
+
+    cat /sys/kernel/mm/transparent_hugepage/enabled
+    cat /sys/kernel/mm/transparent_hugepage/defrag
 }
 
 function func_prepare() {
@@ -272,6 +281,10 @@ while (( "$#" )); do
 	    ;;
 	--cxl)
 	    CONFIG_CXL_MODE=on
+	    shift 1
+	    ;;
+	--huge)
+	    USE_HUGE_PAGE=on
 	    shift 1
 	    ;;
 	-H|-?|-h|--help|--usage)
