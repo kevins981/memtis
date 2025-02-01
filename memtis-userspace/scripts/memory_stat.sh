@@ -2,11 +2,11 @@
 
 TARGET=$1
 
-PERF_STAT_INTERVAL=10000
-PERF_EXE="/ssd1/songxin8/thesis/autonuma/linux-v6.2-autonuma/tools/perf/perf"
+#PERF_STAT_INTERVAL=10000
+#PERF_EXE="/ssd1/songxin8/thesis/autonuma/linux-v6.2-autonuma/tools/perf/perf"
 
 
-${PERF_EXE} stat -e mem_load_l3_miss_retired.local_dram -e mem_load_l3_miss_retired.remote_dram -I ${PERF_STAT_INTERVAL} -x , --output ${TARGET}/perf_stat_memhit
+#${PERF_EXE} stat -e mem_load_l3_miss_retired.local_dram -e mem_load_l3_miss_retired.remote_dram -I ${PERF_STAT_INTERVAL} -x , --output ${TARGET}/perf_stat_memhit
 
 #while :
 #do
