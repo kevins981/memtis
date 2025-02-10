@@ -173,6 +173,10 @@ function func_main() {
 	    ${TIME} -v \
 	        ${DIR}/bin/launch_bench_nopid ${BENCH_RUN} 2>&1 \
 	        | tee ${LOG_DIR}/output.log
+    elif [[ "x${BENCH_NAME}" =~ "xspeccpu" ]]; then
+	    ${TIME} -f "execution time %e (s)" \
+	        ${DIR}/bin/launch_bench_nopid ${BENCH_RUN} < ${BENCH_ARG} 2>&1 \
+	        | tee ${LOG_DIR}/output.log
     else
 	    ${TIME} -v \
 	        ${DIR}/bin/launch_bench_nopid ${BENCH_RUN} 2>&1 \
